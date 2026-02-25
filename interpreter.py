@@ -41,8 +41,18 @@ class Lexer:
                 tokens.append(TOKENS[4])
                 i += 1
             elif self.line[i] == "-":
-                tokens.append(TOKENS[5])
-                i += 1
+                next = self.line[i+1]
+                if next.isdigit():
+                	negative_number = "-"
+                	j = i+1
+                	while j < l and self.line[j].isdigit():
+                		negative_number += self.line[j]
+                		j += 1
+                	tokens.append({TOKENS[11]: int(negative_number)})
+                	i = j
+                else:
+                	tokens.append(TOKENS[5])
+                	i += 1
             elif self.line[i] == "%":
                 tokens.append(TOKENS[6])
                 i += 1
