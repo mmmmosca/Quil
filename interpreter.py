@@ -12,6 +12,7 @@ TOKENS = [
     "INPUT",
     "ASSIGN",
     "EXIT",
+    "BREAK_LOOP",
     "NUMBER",
     "VAR"
 ]
@@ -43,16 +44,16 @@ class Lexer:
             elif self.line[i] == "-":
                 next = self.line[i+1]
                 if next.isdigit():
-                	negative_number = "-"
-                	j = i+1
-                	while j < l and self.line[j].isdigit():
-                		negative_number += self.line[j]
-                		j += 1
-                	tokens.append({TOKENS[11]: int(negative_number)})
-                	i = j
+                    negative_number = "-"
+                    j = i+1
+                    while j < l and self.line[j].isdigit():
+                        negative_number += self.line[j]
+                        j += 1
+                    tokens.append({TOKENS[-2]: int(negative_number)})
+                    i = j
                 else:
-                	tokens.append(TOKENS[5])
-                	i += 1
+                    tokens.append(TOKENS[5])
+                    i += 1
             elif self.line[i] == "%":
                 tokens.append(TOKENS[6])
                 i += 1
@@ -68,11 +69,14 @@ class Lexer:
             elif self.line[i] == ";":
                 tokens.append(TOKENS[10])
                 i += 1
+            elif self.line[i] == "&":
+                tokens.append(TOKENS[11])
+                i += 1
             elif self.line[i].isdigit():
                 j = i
                 while j < l and self.line[j].isdigit():
                     j += 1
-                tokens.append({TOKENS[11]: int(self.line[i:j])})
+                tokens.append({TOKENS[-2]: int(self.line[i:j])})
                 i = j
             elif self.line[i].isalpha() or self.line[i] == "_":
                 j = i
@@ -115,12 +119,12 @@ class Parser:
         while i < end:
             tok = self.tokens[i]
 
-            if isinstance(tok, dict) and TOKENS[11] in tok:
+            if isinstance(tok, dict) and TOKENS[-2] in tok:
                 next_tok = self.tokens[i + 1] if i + 1 < end else None
                 if next_tok in (TOKENS[0], TOKENS[2]):
-                    pending_number = tok[TOKENS[11]]
+                    pending_number = tok[TOKENS[-2]]
                 else:
-                    self.counter = tok[TOKENS[11]]
+                    self.counter = tok[TOKENS[-2]]
                 i += 1
                 continue
             
@@ -145,12 +149,20 @@ class Parser:
 
             if tok == TOKENS[0]:
                 if pending_number is None:
-                    raise Exception("Missing number before '{'")
+                    j = self._find_block_end(i, TOKENS[0], TOKENS[1])
+                    while True:
+                        broke = self._execute_range(i + 1, j - 1)
+                        if broke:
+                            break
+                    i = j
+                    continue
                 target = pending_number
                 pending_number = None
                 j = self._find_block_end(i, TOKENS[0], TOKENS[1])
                 while self.counter != target:
-                    self._execute_range(i + 1, j - 1)
+                    broke = self._execute_range(i + 1, j - 1)
+                    if broke:
+                        break
                 i = j
                 continue
 
@@ -161,7 +173,9 @@ class Parser:
                 pending_number = None
                 j = self._find_block_end(i, TOKENS[2], TOKENS[3])
                 if self.counter == target:
-                    self._execute_range(i + 1, j - 1)
+                    broke = self._execute_range(i + 1, j - 1)
+                    if broke:
+                        return True
                 i = j
                 continue
 
@@ -177,6 +191,8 @@ class Parser:
                 self.counter = int(input())
             elif tok == TOKENS[10]:
                 exit(0)
+            elif tok == TOKENS[11]:
+                return True
             elif tok in (TOKENS[1], TOKENS[3]):
                 raise Exception(f"Unexpected closing token: {tok}")
             else:
@@ -184,7 +200,9 @@ class Parser:
             i += 1
     
     def parse(self):
-        self._execute_range(0, len(self.tokens))
+        broke = self._execute_range(0, len(self.tokens))
+        if broke:
+            raise Exception("BREAK_LOOP used outside a loop")
 
 if __name__ == "__main__":
     with open(sys.argv[1],"r") as code:
