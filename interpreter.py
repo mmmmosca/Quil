@@ -13,6 +13,7 @@ TOKENS = [
     "ASSIGN",
     "EXIT",
     "BREAK_LOOP",
+    "EOL",
     "NUMBER",
     "VAR"
 ]
@@ -87,6 +88,7 @@ class Lexer:
             elif self.line[i].isspace():
                 i += 1
             else: i += 1
+        tokens.append(TOKENS[12])
         return tokens
 
 
@@ -118,6 +120,11 @@ class Parser:
 
         while i < end:
             tok = self.tokens[i]
+
+            if tok == TOKENS[12]:
+                pending_number = None
+                i += 1
+                continue
 
             if isinstance(tok, dict) and TOKENS[-2] in tok:
                 next_tok = self.tokens[i + 1] if i + 1 < end else None
