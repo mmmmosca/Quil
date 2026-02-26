@@ -206,16 +206,37 @@ class Parser:
                 raise Exception(f"Unknown token: {tok}")
             i += 1
     
+    def printAST(self):
+        indent = ""
+        i = 0
+        l = len(self.tokens)
+        while i < l:
+            tok = self.tokens[i]
+            next_tok = self.tokens[i+1] if i+1 < l else None
+            print(indent+str(tok)) if tok != TOKENS[12] else None
+            if next_tok in (TOKENS[1], TOKENS[3]):
+                indent = indent[:-1]
+            elif tok in (TOKENS[0], TOKENS[2]):
+                indent += "\t"
+            i += 1
+
     def parse(self):
         broke = self._execute_range(0, len(self.tokens))
         if broke:
             raise Exception("BREAK_LOOP used outside a loop")
 
 if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("\nusage: python3 interpreter.py your_file [--ast: to print the ast]\n")
+        exit(0)
     with open(sys.argv[1],"r") as code:
         tokens = []
         for line in code:
             lexer = Lexer(line)
             tokens += lexer.tokenize()
         parser = Parser(tokens)
-        parser.parse()
+        try:
+            if sys.argv[2] == "--ast":
+                parser.printAST()
+        except:
+            parser.parse()
